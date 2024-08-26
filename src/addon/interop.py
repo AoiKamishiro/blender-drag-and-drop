@@ -148,3 +148,12 @@ def parse_float(value: str | None) -> float:
         return float(value)
     except:
         return 0.0
+
+
+def parse_int(value: str | None) -> int:
+    if value is None:
+        return 0
+    try:
+        return int(value)
+    except:
+        return 0
