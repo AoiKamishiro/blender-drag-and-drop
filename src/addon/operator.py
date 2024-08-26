@@ -14,10 +14,10 @@ import bpy
 import os
 import typing
 
-from bpy.props import StringProperty  # pyright: ignore[reportUnknownVariableType]
+from bpy.props import StringProperty
 from bpy.types import Context, Event, Operator
 
-from .interop import has_official_api
+from .interop import has_official_api, get_msg_disp_mode, get_current_preset, log
 from .formats import CLASSES
 from .formats.super import VIEW3D_MT_Space_Import_BASE
 
@@ -57,7 +57,21 @@ class DropEventListener(Operator):
             return  # invalid operation
 
         if c.has_custom_importer():
-            bpy.ops.wm.call_menu(name=name)  # type: ignore
+            mode = get_msg_disp_mode(c.format())
+
+            log(f"ext={ext}, mode={mode}, preset={get_current_preset(c.format())}")
+
+            if mode == "NEVERDEFAULT":
+                i = getattr(bpy.ops.object, f"import_{c.format()}_with_defaults")
+                if i is not None:
+                    i("EXEC_DEFAULT", filename=self.filename)
+            elif mode == "NEVERCUSTOM" and get_current_preset(c.format()) != "":
+                i = getattr(bpy.ops.object, f"import_{c.format()}_with_preset_settings")
+                if i is not None:
+                    i("EXEC_DEFAULT", filename=self.filename)
+            else:
+                bpy.ops.wm.call_menu(name=name)  # type: ignore
+
         else:
             i = getattr(bpy.ops.object, f"import_{c.format()}_with_defaults")
             if i is not None:
