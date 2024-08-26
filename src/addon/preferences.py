@@ -6,13 +6,14 @@
 # pyright: reportGeneralTypeIssues=false
 # pyright: reportUnknownArgumentType=false
 # pyright: reportUnknownMemberType=false
+# pyright: reportInvalidTypeForm=false
 
 from __future__ import annotations
 
-from bpy.props import BoolProperty  # pyright: ignore[reportUnknownVariableType]
+from bpy.props import BoolProperty
+from .interop import try_load
 from bpy.types import AddonPreferences, Context
 
-from . import interop
 
 items: list[str] = [
     "This addon uses C++ DLL code. Please check DLL publisher and DO NOT replace it.",
@@ -26,7 +27,7 @@ class DragAndDropPreferences(AddonPreferences):
     bl_idname = __package__
 
     def callback(self, context: Context):
-        interop.try_load()
+        try_load()
         pass
 
     is_accept: BoolProperty(name="Accept", default=False, update=callback)
@@ -35,9 +36,7 @@ class DragAndDropPreferences(AddonPreferences):
         layout = self.layout
         column = layout.column()
 
-        column.label(
-            text="Please check the following sections before using this addon:"
-        )
+        column.label(text="Please check the following sections before using this addon:")
 
         for i, label in enumerate(items):
             column.label(text=f"{i+1}. {label}")

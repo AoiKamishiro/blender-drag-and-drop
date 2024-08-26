@@ -14,7 +14,7 @@ import bpy
 import os
 import typing
 
-from bpy.props import StringProperty  # pyright: ignore[reportUnknownVariableType]
+from bpy.props import StringProperty
 from bpy.types import Context, Event, Operator
 
 from .interop import has_official_api
