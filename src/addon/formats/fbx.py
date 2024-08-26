@@ -13,12 +13,8 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty
 from bpy.types import Context
 
-from .super import (
-    ImportWithDefaultsBase,
-    ImportsWithCustomSettingsBase,
-    VIEW3D_MT_Space_Import_BASE,
-)
-from ..interop import has_official_api
+from .super import ImportWithDefaultsBase, ImportsWithCustomSettingsBase, VIEW3D_MT_Space_Import_BASE
+from ..interop import get_current_preset, has_official_api, list_presets, load_preset, log, parse_bool, parse_float
 
 
 class ImportFBXWithDefaults(ImportWithDefaultsBase):
@@ -195,6 +191,89 @@ class ImportFBXWithCustomSettings(ImportsWithCustomSettingsBase):
         return {"FINISHED"}
 
 
+class ImportFBXWithPresetSettings(ImportFBXWithCustomSettings):
+    bl_idname = "object.import_fbx_with_preset_settings"
+    bl_label = "Import FBX File"
+    extension = "fbx"
+
+    def get_presets(self, context: Context) -> list[tuple[str, str, str]]:
+        return [(p, p, p) for p in list_presets("operator\\import_scene.fbx")]
+
+    def execute(self, context: Context):
+        presetName: str = get_current_preset(self.extension)
+        preset: str = bpy.utils.preset_find(name=presetName, preset_path="operator\\import_scene.fbx")
+
+        log(f"Using preset: {preset}")
+
+        config: dict[str, str] = load_preset(preset)
+
+        if config.get("use_manual_orientation", None) is not None:
+            self.use_manual_orientation = parse_bool(config.get("use_manual_orientation"))
+
+        if config.get("global_scale", None) is not None:
+            self.global_scale = parse_float(config.get("global_scale"))
+
+        if config.get("bake_space_transform", None) is not None:
+            self.bake_space_transform = parse_bool(config.get("bake_space_transform"))
+
+        if config.get("use_custom_normals", None) is not None:
+            self.use_custom_normals = parse_bool(config.get("use_custom_normals"))
+
+        if config.get("colors_type", None) is not None:
+            self.colors_type = config.get("colors_type")
+
+        if config.get("use_image_search", None) is not None:
+            self.use_image_search = parse_bool(config.get("use_image_search"))
+
+        if config.get("use_alpha_decals", None) is not None:
+            self.use_alpha_decals = parse_bool(config.get("use_alpha_decals"))
+
+        if config.get("decal_offset", None) is not None:
+            self.decal_offset = parse_float(config.get("decal_offset"))
+
+        if config.get("use_anim", None) is not None:
+            self.use_anim = parse_bool(config.get("use_anim"))
+
+        if config.get("anim_offset", None) is not None:
+            self.anim_offset = parse_float(config.get("anim_offset"))
+
+        if config.get("use_subsurf", None) is not None:
+            self.use_subsurf = parse_bool(config.get("use_subsurf"))
+
+        if config.get("use_custom_props", None) is not None:
+            self.use_custom_props = parse_bool(config.get("use_custom_props"))
+
+        if config.get("use_custom_props_enum_as_string", None) is not None:
+            self.use_custom_props_enum_as_string = parse_bool(config.get("use_custom_props_enum_as_string"))
+
+        if config.get("ignore_leaf_bones", None) is not None:
+            self.ignore_leaf_bones = parse_bool(config.get("ignore_leaf_bones"))
+
+        if config.get("force_connect_children", None) is not None:
+            self.force_connect_children = parse_bool(config.get("force_connect_children"))
+
+        if config.get("automatic_bone_orientation", None) is not None:
+            self.automatic_bone_orientation = parse_bool(config.get("automatic_bone_orientation"))
+
+        if config.get("primary_bone_axis", None) is not None:
+            self.primary_bone_axis = config.get("primary_bone_axis")
+
+        if config.get("secondary_bone_axis", None) is not None:
+            self.secondary_bone_axis = config.get("secondary_bone_axis")
+
+        if config.get("use_prepost_rot", None) is not None:
+            self.use_prepost_rot = parse_bool(config.get("use_prepost_rot"))
+
+        if config.get("axis_forward", None) is not None:
+            self.axis_forward = config.get("axis_forward")
+
+        if config.get("axis_up", None) is not None:
+            self.axis_up = config.get("axis_up")
+
+        super().execute(context)
+        return {"FINISHED"}
+
+
 class VIEW3D_MT_Space_Import_FBX(VIEW3D_MT_Space_Import_BASE):
     bl_label = "Import FBX File"
 
@@ -205,6 +284,7 @@ class VIEW3D_MT_Space_Import_FBX(VIEW3D_MT_Space_Import_BASE):
 
 OPERATORS: list[type] = [
     ImportFBXWithDefaults,
+    ImportFBXWithPresetSettings,
     ImportFBXWithCustomSettings,
     VIEW3D_MT_Space_Import_FBX,
 ]
