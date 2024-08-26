@@ -38,8 +38,8 @@ class DragAndDropPreferences(AddonPreferences):
     is_accept: BoolProperty(name="Accept", default=False, update=callback)
 
     for c in list_presets:
-        exec(f"{c.lower()}_disp_option: EnumProperty(name='Show Import Message', items=selections, default=selections[0][0], update=callback)")
-        exec(f"{c.lower()}_preset: EnumProperty(name='Operator Preset', items=list_presets['{c}'], update=callback)")
+        exec(f"{c.lower()}_disp_option: EnumProperty(name='Show Import Message', items=selections, default=selections[0][0])")
+        exec(f"{c.lower()}_preset: EnumProperty(name='Operator Preset', items=list_presets['{c}'])")
 
     def draw(self, context: Context):
         layout = self.layout
