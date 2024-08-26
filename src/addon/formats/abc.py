@@ -11,18 +11,11 @@
 from typing import Set
 import bpy
 
-from bpy.props import (
-    BoolProperty,  # pyright: ignore[reportUnknownVariableType]
-    FloatProperty,  # pyright: ignore[reportUnknownVariableType]
-)
+from bpy.props import BoolProperty, FloatProperty
 from bpy.types import Context
 
-from .super import (
-    ImportWithDefaultsBase,
-    ImportsWithCustomSettingsBase,
-    VIEW3D_MT_Space_Import_BASE,
-)
-from ..interop import has_official_api
+from .super import ImportWithDefaultsBase, ImportsWithCustomSettingsBase, VIEW3D_MT_Space_Import_BASE
+from ..interop import get_current_preset, has_official_api, list_presets, load_preset, log, parse_bool, parse_float
 
 
 class ImportABCWithDefaults(ImportWithDefaultsBase):
@@ -80,6 +73,44 @@ class ImportABCWithCustomSettings(ImportsWithCustomSettingsBase):
         return {"FINISHED"}
 
 
+class ImportABCWithPresetSettings(ImportABCWithCustomSettings):
+    bl_idname = "object.import_abc_with_preset_settings"
+    bl_label = "Import ABC File"
+    extension = "abc"
+
+    def get_presets(self, context: Context) -> list[tuple[str, str, str]]:
+        return [(p, p, p) for p in list_presets("operator\\wm.alembic_import")]
+
+    def execute(self, context: Context):
+        presetName: str = get_current_preset(self.extension)
+        preset = bpy.utils.preset_find(name=presetName, preset_path="operator\\wm.alembic_import")
+
+        log(f"Using preset: {preset}")
+
+        config: dict[str, str] = load_preset(preset)
+
+        if config.get("relative_path", None) is not None:
+            self.relative_path = parse_bool(config.get("relative_path"))
+
+        if config.get("scale", None) is not None:
+            self.scale = parse_float(config.get("scale"))
+
+        if config.get("set_frame_range", None) is not None:
+            self.set_frame_range = parse_bool(config.get("set_frame_range"))
+
+        if config.get("validate_meshes", None) is not None:
+            self.validate_meshes = parse_bool(config.get("validate_meshes"))
+
+        if config.get("always_add_cache_reader", None) is not None:
+            self.always_add_cache_reader = parse_bool(config.get("always_add_cache_reader"))
+
+        if config.get("is_sequence", None) is not None:
+            self.is_sequence = parse_bool(config.get("is_sequence"))
+
+        super().execute(context)
+        return {"FINISHED"}
+
+
 class VIEW3D_MT_Space_Import_ABC(VIEW3D_MT_Space_Import_BASE):
     bl_label = "Import ABC File"
 
@@ -91,6 +122,7 @@ class VIEW3D_MT_Space_Import_ABC(VIEW3D_MT_Space_Import_BASE):
 OPERATORS: list[type] = [
     ImportABCWithDefaults,
     ImportABCWithCustomSettings,
+    ImportABCWithPresetSettings,
     VIEW3D_MT_Space_Import_ABC,
 ]
 
