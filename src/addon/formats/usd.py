@@ -10,20 +10,11 @@
 
 import bpy
 
-from bpy.props import (
-    BoolProperty,  # pyright: ignore[reportUnknownVariableType]
-    EnumProperty,  # pyright: ignore[reportUnknownVariableType]
-    FloatProperty,  # pyright: ignore[reportUnknownVariableType]
-    StringProperty,  # pyright: ignore[reportUnknownVariableType]
-)
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, StringProperty
 from bpy.types import Context
 
-from .super import (
-    ImportWithDefaultsBase,
-    ImportsWithCustomSettingsBase,
-    VIEW3D_MT_Space_Import_BASE,
-)
-from ..interop import has_official_api
+from .super import ImportWithDefaultsBase, ImportsWithCustomSettingsBase, VIEW3D_MT_Space_Import_BASE
+from ..interop import get_current_preset, has_official_api, list_presets, load_preset, log, parse_bool, parse_int, parse_float
 
 
 class ImportUSDWithDefaults(ImportWithDefaultsBase):
@@ -65,9 +56,7 @@ class ImportUSDWithCustomSettings(ImportsWithCustomSettingsBase):
     import_all_materials: BoolProperty(default=False, name="Import All Materials")
     import_usd_preview: BoolProperty(default=True, name="Import USD Preview")
     set_material_blend: BoolProperty(default=True, name="Set Material Blend")
-    light_intensity_scale: FloatProperty(
-        default=1.0, min=0.0001, max=10000, name="Light Intensity Scale"
-    )
+    light_intensity_scale: FloatProperty(default=1.0, min=0.0001, max=10000, name="Light Intensity Scale")
     mtl_name_collision_mode: EnumProperty(
         default="MAKE_UNIQUE",
         name="Material Name Collision",
@@ -85,9 +74,7 @@ class ImportUSDWithCustomSettings(ImportsWithCustomSettingsBase):
             ("IMPORT_COPY", "Copy", ""),
         ],
     )
-    import_textures_dir: StringProperty(
-        default="//textures/", name="Textures Directory"
-    )
+    import_textures_dir: StringProperty(default="//textures/", name="Textures Directory")
     tex_name_collision_mode: EnumProperty(
         default="USE_EXISTING",
         name="File Name Collision",
@@ -189,6 +176,119 @@ class ImportUSDWithCustomSettings(ImportsWithCustomSettingsBase):
         return {"FINISHED"}
 
 
+class ImportUSDWithPresetSettings(ImportUSDWithCustomSettings):
+    bl_idname = "object.import_usd_with_preset_settings"
+    bl_label = "Import Wavefront USD File (Experimental)"
+    extension = "usd"
+
+    def get_presets(self, context: Context) -> list[tuple[str, str, str]]:
+        return [(p, p, p) for p in list_presets("operator\\wm.usd_import")]
+
+    def execute(self, context: Context):
+        presetName: str = get_current_preset(self.extension)
+        preset: str = bpy.utils.preset_find(name=presetName, preset_path="operator\\wm.usd_import")
+
+        log(f"Using preset: {preset}")
+
+        config: dict[str, str] = load_preset(preset)
+
+        if config.get("relative_path", None) is not None:
+            self.relative_path = parse_bool(config.get("relative_path"))
+
+        if config.get("scale", None) is not None:
+            self.scale = parse_float(config.get("scale"))
+
+        if config.get("set_frame_range", None) is not None:
+            self.set_frame_range = parse_bool(config.get("set_frame_range"))
+
+        if config.get("import_cameras", None) is not None:
+            self.import_cameras = parse_bool(config.get("import_cameras"))
+
+        if config.get("import_curves", None) is not None:
+            self.import_curves = parse_bool(config.get("import_curves"))
+
+        if config.get("import_lights", None) is not None:
+            self.import_lights = parse_bool(config.get("import_lights"))
+
+        if config.get("import_materials", None) is not None:
+            self.import_materials = parse_bool(config.get("import_materials"))
+
+        if config.get("import_meshes", None) is not None:
+            self.import_meshes = parse_bool(config.get("import_meshes"))
+
+        if config.get("import_volumes", None) is not None:
+            self.import_volumes = parse_bool(config.get("import_volumes"))
+
+        if config.get("import_shapes", None) is not None:
+            self.import_shapes = parse_bool(config.get("import_shapes"))
+
+        if config.get("import_skeletons", None) is not None:
+            self.import_skeletons = parse_bool(config.get("import_skeletons"))
+
+        if config.get("import_blendshapes", None) is not None:
+            self.import_blendshapes = parse_bool(config.get("import_blendshapes"))
+
+        if config.get("import_subdiv", None) is not None:
+            self.import_subdiv = parse_bool(config.get("import_subdiv"))
+
+        if config.get("import_instance_proxies", None) is not None:
+            self.import_instance_proxies = parse_bool(config.get("import_instance_proxies"))
+
+        if config.get("import_visible_only", None) is not None:
+            self.import_visible_only = parse_bool(config.get("import_visible_only"))
+
+        if config.get("create_collection", None) is not None:
+            self.create_collection = parse_bool(config.get("create_collection"))
+
+        if config.get("read_mesh_uvs", None) is not None:
+            self.read_mesh_uvs = parse_bool(config.get("read_mesh_uvs"))
+
+        if config.get("read_mesh_colors", None) is not None:
+            self.read_mesh_colors = parse_bool(config.get("read_mesh_colors"))
+
+        if config.get("read_mesh_attributes", None) is not None:
+            self.read_mesh_attributes = parse_bool(config.get("read_mesh_attributes"))
+
+        if config.get("prim_path_mask", None) is not None:
+            self.prim_path_mask = config.get("prim_path_mask")
+
+        if config.get("import_guide", None) is not None:
+            self.import_guide = parse_bool(config.get("import_guide"))
+
+        if config.get("import_proxy", None) is not None:
+            self.import_proxy = parse_bool(config.get("import_proxy"))
+
+        if config.get("import_render", None) is not None:
+            self.import_render = parse_bool(config.get("import_render"))
+
+        if config.get("import_all_materials", None) is not None:
+            self.import_all_materials = parse_bool(config.get("import_all_materials"))
+
+        if config.get("import_usd_preview", None) is not None:
+            self.import_usd_preview = parse_bool(config.get("import_usd_preview"))
+
+        if config.get("set_material_blend", None) is not None:
+            self.set_material_blend = parse_bool(config.get("set_material_blend"))
+
+        if config.get("light_intensity_scale", None) is not None:
+            self.light_intensity_scale = parse_float(config.get("light_intensity_scale"))
+
+        if config.get("mtl_name_collision_mode", None) is not None:
+            self.mtl_name_collision_mode = config.get("mtl_name_collision_mode")
+
+        if config.get("import_textures_mode", None) is not None:
+            self.import_textures_mode = config.get("import_textures_mode")
+
+        if config.get("import_textures_dir", None) is not None:
+            self.import_textures_dir = config.get("import_textures_dir")
+
+        if config.get("tex_name_collision_mode", None) is not None:
+            self.tex_name_collision_mode = config.get("tex_name_collision_mode")
+
+        super().execute(context)
+        return {"FINISHED"}
+
+
 class VIEW3D_MT_Space_Import_USD(VIEW3D_MT_Space_Import_BASE):
     bl_label = "Import Universal Scene Description File"
 
@@ -224,6 +324,7 @@ class VIEW3D_MT_Space_Import_USDZ(VIEW3D_MT_Space_Import_BASE):
 OPERATORS: list[type] = [
     ImportUSDWithDefaults,
     ImportUSDWithCustomSettings,
+    ImportUSDWithPresetSettings,
     VIEW3D_MT_Space_Import_USD,
     VIEW3D_MT_Space_Import_USDA,
     VIEW3D_MT_Space_Import_USDC,
