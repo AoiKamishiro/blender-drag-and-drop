@@ -11,18 +11,11 @@
 from typing import Set
 import bpy
 
-from bpy.props import (
-    BoolProperty,  # pyright: ignore[reportUnknownVariableType]
-    IntProperty,  # pyright: ignore[reportUnknownVariableType]
-)
+from bpy.props import BoolProperty, IntProperty
 from bpy.types import Context
 
-from .super import (
-    ImportWithDefaultsBase,
-    ImportsWithCustomSettingsBase,
-    VIEW3D_MT_Space_Import_BASE,
-)
-from ..interop import has_official_api
+from .super import ImportWithDefaultsBase, ImportsWithCustomSettingsBase, VIEW3D_MT_Space_Import_BASE
+from ..interop import get_current_preset, has_official_api, list_presets, load_preset, log, parse_bool, parse_int
 
 
 class ImportDAEWithDefaults(ImportWithDefaultsBase):
@@ -83,6 +76,47 @@ class ImportDAEWithCustomSettings(ImportsWithCustomSettingsBase):
         return {"FINISHED"}
 
 
+class ImportDAEWithPresetSettings(ImportDAEWithCustomSettings):
+    bl_idname = "object.import_dae_with_preset_settings"
+    bl_label = "Import DAE File"
+    extension = "dae"
+
+    def get_presets(self, context: Context) -> list[tuple[str, str, str]]:
+        return [(p, p, p) for p in list_presets("operator\\wm.collada_import")]
+
+    def execute(self, context: Context):
+        presetName: str = get_current_preset(self.extension)
+        preset: str = bpy.utils.preset_find(name=presetName, preset_path="operator\\wm.collada_import")
+
+        log(f"Using preset: {preset}")
+
+        config: dict[str, str] = load_preset(preset)
+
+        if config.get("import_units", None) is not None:
+            self.import_units = parse_bool(config.get("import_units"))
+
+        if config.get("custom_normals", None) is not None:
+            self.custom_normals = parse_bool(config.get("custom_normals"))
+
+        if config.get("fix_orientation", None) is not None:
+            self.fix_orientation = parse_bool(config.get("fix_orientation"))
+
+        if config.get("find_chains", None) is not None:
+            self.find_chains = parse_bool(config.get("find_chains"))
+
+        if config.get("auto_connect", None) is not None:
+            self.auto_connect = parse_bool(config.get("auto_connect"))
+
+        if config.get("min_chain_length", None) is not None:
+            self.min_chain_length = parse_int(config.get("min_chain_length"))
+
+        if config.get("keep_bind_info", None) is not None:
+            self.keep_bind_info = parse_bool(config.get("keep_bind_info"))
+
+        super().execute(context)
+        return {"FINISHED"}
+
+
 class VIEW3D_MT_Space_Import_DAE(VIEW3D_MT_Space_Import_BASE):
     bl_label = "Import Collada File"
 
@@ -94,6 +128,7 @@ class VIEW3D_MT_Space_Import_DAE(VIEW3D_MT_Space_Import_BASE):
 OPERATORS: list[type] = [
     ImportDAEWithDefaults,
     ImportDAEWithCustomSettings,
+    ImportDAEWithPresetSettings,
     VIEW3D_MT_Space_Import_DAE,
 ]
 
